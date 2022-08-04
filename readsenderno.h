@@ -1,13 +1,24 @@
 void ReadSenderno()
 {
-position = entiremsg.indexOf("+CMT");
-     if(position != -1)
+  uint8_t pos=0;
+  uint8_t pos2=0;
+  pos = entiremsg.indexOf("+CMT");
+     if(pos != -1)
         {
-          position2 = entiremsg.indexOf('+', position+1); 
-          // Serial.print("position is ");
-          // Serial.println(position);
-          sender = entiremsg.substring((position2), (position2+13));
+          pos2 = entiremsg.indexOf('+', pos+1); 
+
+          if (pos2==-1)
+          {
+            response=2;
+            SendResponse();
+          }
+          
+          //Serial.print("position is ");
+          //Serial.println(pos);
+          firstsender = (entiremsg.substring((pos2+1), (pos2+4))).toInt();
+          sender= (entiremsg.substring((pos2+4), (pos2+13))).toInt();
         }
 Serial.print("sender is ");
+Serial.print(firstsender);
 Serial.println(sender);
 }

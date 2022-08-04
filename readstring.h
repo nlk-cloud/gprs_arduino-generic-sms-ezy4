@@ -1,12 +1,11 @@
 void ReadString()
 {
-if ((mySerial.available()>0)&&(newData==false))  
+if ((mySerial.available()>0)&&(flag==0))  
     {//mySerial.flush();
-      Serial.println("entered msgrd");    
+      Serial.println("entered Readstring");    
       //entiremsg=mySerial.readStringUntil('\r');
       entiremsg=mySerial.readString();
       Serial.println(entiremsg);
-      newData = true;
+      flag=1;
     }
 }
-

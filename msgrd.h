@@ -4,45 +4,142 @@
 void MsgRd()
 {
     entiremsg="";
-    newData = false;
+    flag=0;
     //ReadCharacterbyCharacter();
  //Serial.println("entered msgrd");    
     ReadString();
     //ReadCharAppendtoString();
   
  
+entiremsg.toUpperCase();
 
-if(newData==true)
+
+if(flag==1)
 
 {
 
   ReadSenderno(); // Read the sender's no
-  ReadSmsTxt(); ////Read the sms txt 
+   
+  
 
- if ((smstxt1=="SET") && (smstxt2=="USER0")) // setting initial user. No number will follow this command
+
+if ( entiremsg.indexOf("SET USER")>0)
       {  
-          SetUser0();        
+          SetUser0();        // setting initial user. No number will follow this command
       }
 
+
   else
+
     {
-     Serial.println("entered else");
-      // Read the number to include or delete  
-      ReadVerifyNumber();
-  
-      if (smstxt1=="ADD")
-      {
-        Incl();
-      }  
-    }      
-  
+      
+
+         if(entiremsg.indexOf("ADD ADMIN")>0)
+            {
+                InclAdmin(); 
+            }    
+
+         if(entiremsg.indexOf("ADD USER")>0)
+            {
+             InclUser();             
+            }      
+
+        if(entiremsg.indexOf("DEL USER")>0)
+            {
+               Deluser();               
+            }
+            
+        if(entiremsg.indexOf("USER LIST")>0)
+        {
+            response=10;
+            SendResponse();
+        }
+        
+        if(entiremsg.indexOf("CHANGE")>0)    
+        {
+          if(entiremsg.indexOf("DELAY")>0)
+          {
+          setdelay();    //setinputflag.h
+          }
+        else
+        {
+          ReadAssignioNames();
+        }      
+        }
+        
+                    
+         if(entiremsg.indexOf("INPUT STATUS")>0)       
+        {
+          InputStatus();  // status.h
+        }        
+
+       /*  if(entiremsg.indexOf("OUTPUT STATUS")>0)       
+        {
+          OutputStatus(); // status.h
+        }    
+*/
+        if((entiremsg.indexOf("LATCHING")>0)||(entiremsg.indexOf("NONLATCHING")>0))    
+        {
+          latchnonlatch(); // setinputflag.h
+        }
+
+        if((entiremsg.indexOf("OPEN")>0)||(entiremsg.indexOf("CLOSED")>0))    
+        {
+          openclose();    //setinputflag.h
+        }
+
+        if((entiremsg.indexOf("LINK")>0)&&(entiremsg.indexOf("TO")>0))    
+        {
+          linkinout();    //setinputflag.h
+        }
+        if((entiremsg.indexOf("CLEAR")>0)&&(entiremsg.indexOf("LINK")>0))    
+        {
+          clearlink();    //setinputflag.h
+        }
+        if((entiremsg.indexOf("LINK STATUS")>0))    
+        {
+          linkstatus();    //setinputflag.h
+        }
+        
+        if((entiremsg.indexOf("RESET")>0))    
+        {
+          resetlatchedinput();    //setinputflag.h
+        }
+
+        if((entiremsg.indexOf("ALERTS")>0))    
+        {
+          alerts();    //setinputflag.h
+        }
+
+        if(entiremsg.indexOf("MESSAGE")>0)
+        {
+          setinputonoffmessages();
+        }
+        
+        if(entiremsg.indexOf("VER")>0)
+        {
+            response=12;
+            SendResponse();
+        }        
+
+
 }   
 
-sender="";
-newData = false;     
+//userflag=false;
+//numflag=false;
+flag=0;
+sender=0;
+firstsender=0;
+firstnumtoincldel=0;
+numtoincldel=0;
+//newData = false;     
 //delay(5000); // delay before it starts new cycle
 
 }
+
+}
+
+
 /*else
 if( entiremsg != "")
 {
@@ -126,4 +223,3 @@ for(i=0; i<arraysize; i++) //count only holds the n. of valid phone no.s in the 
         }
  
 */
-
