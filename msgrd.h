@@ -37,9 +37,12 @@ if ( entiremsg.indexOf("SET USER")>0)
          if(entiremsg.indexOf("ADD ADMIN")>0)
             {
                 InclAdmin(); 
-            }    
-
-         if(entiremsg.indexOf("ADD USER")>0)
+            }   
+             
+    if((sender==admin)&&(firstsender==firstadmin))
+        {
+          if(entiremsg.indexOf("ADD USER")>0)
+        
             {
              InclUser();             
             }      
@@ -73,11 +76,11 @@ if ( entiremsg.indexOf("SET USER")>0)
           InputStatus();  // status.h
         }        
 
-       /*  if(entiremsg.indexOf("OUTPUT STATUS")>0)       
+       if(entiremsg.indexOf("OUTPUT STATUS")>0)       
         {
-          OutputStatus(); // status.h
+          outputstatus(); // status.h
         }    
-*/
+
         if((entiremsg.indexOf("LATCHING")>0)||(entiremsg.indexOf("NONLATCHING")>0))    
         {
           latchnonlatch(); // setinputflag.h
@@ -92,9 +95,23 @@ if ( entiremsg.indexOf("SET USER")>0)
         {
           linkinout();    //setinputflag.h
         }
+        
+        if(entiremsg.indexOf("LINK OUTPUTS")>0)   
+        {
+          linkout();    //setoutputflag.h
+        }
+        
         if((entiremsg.indexOf("CLEAR")>0)&&(entiremsg.indexOf("LINK")>0))    
         {
-          clearlink();    //setinputflag.h
+          if (entiremsg.indexOf("OUTPUTS")>0)
+          {
+            linkout();
+          }
+          else
+          {
+            clearlink();    //setinputflag.h
+          }
+          
         }
         if((entiremsg.indexOf("LINK STATUS")>0))    
         {
@@ -103,9 +120,21 @@ if ( entiremsg.indexOf("SET USER")>0)
         
         if((entiremsg.indexOf("RESET")>0))    
         {
+          if((entiremsg.indexOf("FACTORY RESET")>0))
+         {
+          factoryreset(); //resetreboot.h
+         }
+          else
+          {
           resetlatchedinput();    //setinputflag.h
+          }
         }
 
+        if((entiremsg.indexOf("REBOOT")>0)) 
+        {
+          reboot(); //resetreboot.h
+        }
+      
         if((entiremsg.indexOf("ALERTS")>0))    
         {
           alerts();    //setinputflag.h
@@ -113,16 +142,57 @@ if ( entiremsg.indexOf("SET USER")>0)
 
         if(entiremsg.indexOf("MESSAGE")>0)
         {
-          setinputonoffmessages();
+          setinputonoffmessages(); //setinputflag.h
         }
-        
+
+        if((entiremsg.indexOf("SET")>0)&&(entiremsg.indexOf("ON TIME TO")>0))
+        {
+          turnandsetoutput();
+        }
+
+      if((entiremsg.indexOf("TURN")>0))
+        {
+          if((entiremsg.indexOf("ALIVE TEXT")>0))
+          {
+            alivetext(); //resetreboot.h
+          }
+          else
+          {
+          turnandsetoutput();         
+          }       
+        }
+
+      if((entiremsg.indexOf("CHANGE BATTERY")>0))
+      {
+       setbatterytrigger(); //resetreboot.h
+      }
+
+      if(entiremsg.indexOf("LINK BATTERY")>0)
+      {
+       linkbatteryalarm(); //resetreboot.h
+      }
+
+      if(entiremsg.indexOf("CLEAR BATTERY")>0)
+      {
+       clearbatterylink(); //resetreboot.h
+      }
+
+      if((entiremsg.indexOf("VOLTAGE STATUS")>0))
+      {
+       batteryvoltage(); //resetreboot.h
+      }
+         
         if(entiremsg.indexOf("VER")>0)
         {
             response=12;
             SendResponse();
         }        
 
-
+        if(entiremsg.indexOf("SIG")>0)
+        {
+            signalstrength(); //resetreboot.h
+        }  
+        }
 }   
 
 //userflag=false;

@@ -19,9 +19,11 @@
 // Response =15 => Response if the from name doesnt match with any of the existing input or output names
 // Response =16 => Response to 'Input Status Command
 //               => Response for latching and unlatching inputs. Msg is set in calling function
+// Response 17 => Sending response to all users
 
 void SendResponse()
 {
+  uint8_t y;
 switch (response)
 {
 // response for duplicate user addition
@@ -197,12 +199,25 @@ case 15:
       delay(20000);
 break;
 
-//Response to 'Input Status Command 
+//Generic Response. Message is already set whne it comes here 
 case 16:
       // msg is set in inputstatus() or LatchandUnlatch()
       stringtemp='+'+String(firstsender)+String(sender);
       SendMessage();
       delay(20000);
-}
+      break;
 
+// sending message all 5 users. Mag is already set, when it comes here
+case 17:
+     stringtemp='+'+String(firstadmin)+String(admin);
+     SendMessage();
+     delay(20000);
+     for(y=0;y<5;y++)
+     { stringtemp='+'+String(usernum3digits[y])+String(usernum9digits[y]);
+      SendMessage();
+      delay(20000);
+     }
+      break;
+     }
+      
 }

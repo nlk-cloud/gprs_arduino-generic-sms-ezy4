@@ -7,6 +7,7 @@ void ReadNamefromCommand(const String &command, char from, char to, const String
     name = "";
     position = entiremsg.indexOf(command);
 
+
     // Read the name of the input
     if (position != -1)
     {
@@ -70,7 +71,7 @@ int resetbit(int andwith)
             else if (((inputstatusflag[a]) & (~(andwith))) != 0)
             {
                 inputstatusflag[a] = inputstatusflag[a] & (andwith);
-                offsetaddr = 211 + (a * 8);
+                offsetaddr = 211 + (a * 1);
                 EEPROM.write(offsetaddr, inputstatusflag[a]);
                 inputstatusflag[a] = EEPROM.read(offsetaddr);
                 break;
@@ -99,7 +100,7 @@ uint8_t setbit(int orwith)
             else if (((inputstatusflag[b]) & (orwith)) == 0)
             {
                 inputstatusflag[b] = inputstatusflag[b] | (orwith);
-                offsetaddr = 211 + (b * 8);
+                offsetaddr = 211 + (b * 1);
                 EEPROM.write(offsetaddr, inputstatusflag[b]);
                 inputstatusflag[b] = EEPROM.read(offsetaddr);
                 break;
@@ -266,9 +267,11 @@ void linkstatus()
     SendResponse();
 }
 
+// Resets the latched bit ( 6th bit in input flag) and drives the corresponding output to 0
+
 void resetlatchedinput()
 {
-    uint8_t p;
+    uint8_t p,n;
     // String
     kiwrd = "RESET";
     ReadNamefromCommand(kiwrd, ' ', '\r', fromname);
@@ -281,6 +284,12 @@ void resetlatchedinput()
     }
     else
     {
+         if (((inputstatusflag[p]&0x04)>>2)==1) // checking if the input is linked to an output
+            {
+                n=((inputstatusflag[p]&(0x18))>>3); // extracting the output no. to which it is linked
+                digitalWrite(outchannel[n],0);
+            }
+                       
         msg = fromname + " is no longer in a latched state and will begin to be monitored again";
     }
     response = 16;
@@ -295,9 +304,10 @@ void alerts()
         for (p = 0; p < 4; p = p + 1)
         {
             inputstatusflag[p] = inputstatusflag[p] | (0x40);
-            offsetaddr = 211 + (p * 8);
+            offsetaddr = 211 + (p * 1);
             EEPROM.write(offsetaddr, inputstatusflag[p]);
             inputstatusflag[p] = EEPROM.read(offsetaddr);
+            
         }
         msg = "Alerts have been enabled";
         response = 16;
@@ -320,7 +330,7 @@ void alerts()
                 inputstatusflag[p] = inputstatusflag[p] & (0xA3);
                 msg = "Alerts have been disabled";
             }
-            offsetaddr = 211 + (p * 8);
+            offsetaddr = 211 + (p * 1);
             EEPROM.write(offsetaddr, inputstatusflag[p]);
             inputstatusflag[p] = EEPROM.read(offsetaddr);
         }
@@ -395,15 +405,52 @@ void setdelay()
 void setinputonoffmessages()
 {
     uint8_t n;
-    if (entiremsg.indexOf("OFFMESSAGE") > 0)
-    {
-        kiwrd = "SSAGE"; // since we want to extract the position of 2nd E in the word message
+    kiwrd = "SSAGE"; // since we want to extract the position of 2nd E in the word message
         ReadNamefromCommand(kiwrd,'E', ' ', fromname);
         n = fromname.toInt();
-        Serial.println(fromname.toInt());
+        //Serial.println(fromname.toInt());
         kiwrd = fromname;
         ReadNamefromCommand(kiwrd,' ', '\r', toname);
-        offsetaddr = 492 + ((n - 1) * 66);
-        WriteCharIntoEprom(offsetaddr, toname);
-    }
+        if(toname.length()>60)
+        {
+            msg="Sorry. This message is not allowed. Only 6 words ( with each word between 1 and 10 characters) only allowed";
+        }
+        
+        if(toname.length()==0)
+        {
+            if((entiremsg.indexOf("OFFMESSAGE") > 0))
+           {
+            
+                offsetaddr = 492 + ((n - 1) * 66);
+                WriteCharIntoEprom(offsetaddr, inputname[n-1]+" has turned off");
+           } 
+            else
+            {
+               offsetaddr = 231 + ((n - 1) * 66);
+              WriteCharIntoEprom(offsetaddr, inputname[n-1]+" has turned on"); 
+            }
+            msg="The reply message has been set back to factory settings";
+        }
+        else
+
+        if( (toname.length()>0) && (toname.length()<=60))
+        {
+            if (entiremsg.indexOf("OFFMESSAGE") > 0)
+            {
+                offsetaddr = 492 + ((n - 1) * 66);
+                WriteCharIntoEprom(offsetaddr, toname);
+                msg="The input"+fromname+" OFF reply message has been set to: "+toname;
+            }
+
+            else 
+            if (entiremsg.indexOf("MESSAGE") > 0)
+             {
+                offsetaddr = 231 + ((n - 1) * 66);
+                WriteCharIntoEprom(offsetaddr, toname);
+                msg="The input"+fromname+" ON reply message has been set to: "+toname;
+             }
+        }
+    response=16;
+    SendResponse();
+
 }

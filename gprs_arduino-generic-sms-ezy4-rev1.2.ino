@@ -4,17 +4,26 @@
 #include <SoftwareSerial.h>
 SoftwareSerial mySerial(50, 51);
 #include <EEPROM.h>
+void(* resetFunc) (void) = 0;
 
 #define Version 1.2
-#define input0 22
+/*#define input0 22
 #define input1 23
 #define input2 24
-#define input3 A0
+#define input3 25
 
 #define output0 26
 #define output1 27
 #define output2 28
-#define output3 29
+#define output3 29 */
+
+#define battery A0 
+
+// Input channels
+uint8_t inchannel[4]={22,23,24,25};
+
+// Output channels
+uint8_t outchannel[4]={26,27,28,29};
 
 String fromname;
 String toname;
@@ -43,6 +52,8 @@ long user0=0;
 long sender=0;
 long usernum9digits[5]={0,0,0,0,0};
 
+unsigned long prev=0;
+
 
 uint8_t flag=0; // this will be 8 bits. Each bit represents the below flags 
 //boolean numflag = false; - MSB
@@ -53,11 +64,13 @@ uint8_t flag=0; // this will be 8 bits. Each bit represents the below flags
 
 unsigned int inputondelay[4]={30,30,30,30}; // contains delay in secs
 unsigned int inputoffdelay[4]={30,30,30,30}; // contains delay in secs
+uint8_t outputontime[4]={0,0,0,0}; // whatever 2 digit on time has been entered, will be stored here. whether it is min, days etc will be stored in status flag
+
 
 
 //uint8_t latchreset=0; // stores the latch reset status of all the inputs
 uint8_t instatusrd; //status of the inputs read and stored here. LSB is the status of input0, next bit is the status of input1 and so on
-uint8_t instatusdefault=0; // default status of all 4 inputs. LSB is for input 0 and so on 
+//uint8_t instatusdefault=0; // default status of all 4 inputs. LSB is for input 0 and so on 
 uint8_t outstatusrd; // status of the outputs is read and stored here. LSB is the status of output0, next bt output1 and so on
 uint8_t i;
 uint8_t response; //if response=0 implies response to add cmd, response=1 for del response
@@ -69,13 +82,39 @@ uint8_t inputstatusflag[4]={0,0,0,0};
 // Bit                whatit indicates
 //  7                              
 //  6               Input texts ON if 1 Input texts OFF if 0
-//  5               
+//  5               Latch resset
 //  4               WHich output is linked to this input ( upperr bit of that output)
 //  3               WHich output is linked to this input ( lower bit of that output)
 //  2               Link input to output if 1 else inputs and outputs are not linked
 //  1               Input Latching (if 1 ) and Input Non-Latching ( if 0)
 //  0               normally open(default logic 0, when it is 0) or closed (default logic 1 when it is 1) - 
 
+uint8_t outputstatusflag[4]={0,0,0,0};
+
+// Each output has one status flag. THe settings of each flag are:
+// Bit                whatit indicates
+//  7                              
+//  6               
+//  5               1 - output is linked to battery alarm. 0 - link to battery alarim is off               
+//  4              (bit4 and bit3) - indicate the outputs to which the current output is linked 
+//  3               
+//  2              0- Linking is OFF, 1 - Linking is ON 
+//  1              (bit0 and bit1)00 - output will be ON or OFF untill the next command
+//  0              01- output will be on for specified time and the time is in mins
+//                 10 - output will be on for specified time and the time is in hours
+//                 11 - output will be on for specified time and the time is in days
+
+uint8_t alivetxttime=0;
+//Alive text information
+// Bit            What it indicates
+// 7              Bits 1 to 7 store the count of hours or days after which alive text has to be sent
+// 6              00 indicates no alive text 
+// 5
+// 4
+// 3
+// 2
+// 1
+// 0              0 - implies the number in the abovebits is for hours 1 - implies the number in above bits is days
 
 
 
@@ -83,25 +122,26 @@ uint8_t inputstatusflag[4]={0,0,0,0};
 //#include "readusrlistfrmeprom.h"
 ///#include "readcharappendtostring.h"
 #include "readstring.h"
-//#include "modemresponse.h"
 #include "sendmsg.h"
-///#include "writelongintoEEPROM.h"
 #include "setupeeprom.h"
 #include "sendresponse.h"
 #include "setupinputflag.h"
+#include "setoutputflag.h"
 #include "status.h"
-//#include "linklatch.h"
 #include "readassignionames.h"
-#include "checkifuserexists.h"
-#include "setuser0.h"
+//#include "checkifuserexists.h" //moved to readassignionames.h
+//#include "setuser0.h" //moved to incluser.h
 #include "readverifynumber.h"
 #include "incluser.h"
 #include "incladmin.h"
 #include "deluser.h"
-#include "readsenderno.h"
+//#include "readsenderno.h" //moved to readverifynumber.h
 //#include "readsmstxt.h"
 //#include "readcharacterbycharacter.h"
+#include "resetreboot.h"
+#include "drive.h"
 #include "msgrd.h"
+
 
 
 
@@ -148,16 +188,32 @@ Serial.println("started");
 // Write input on messages into EEPROM
 //WriteInputOFFmsgfirsttime(); //setupeeprom.h
 
+//Write output status flag for the first time
+//WriteOutputFlagsfirsttime();
+
+//Write output ON TIME for the first time
+//WriteOutputOntime();
+
+// Write battery trigger voltage for the first time
+//Writebatterytrigger();
+
+// Write alive text time for the first time
+//Writealivetxttimefirsttime();
+
 // Reading from EEPROM
 ReadUsersandAdmin();
 ReadioNamesfrmEprom(); //setupeeprom.h
 ReadInputStatusFlag(); //setupeeprom.h
 ReadInputDelays();//setupeeprom.h
+ReadOutputFlags();//setupeeprom.h
+ReadOutputONTime();
+ReadBatteryTrigger();
+Readalivetxttime();
 
 inputonmsgprint(); //setupeeprom.h
 inputoffmsgprint(); //setupeeprom.h
 
-pinMode(input0, INPUT);
+/*pinMode(input0, INPUT);
 pinMode(input1, INPUT);
 pinMode(input2, INPUT);
 pinMode(input3, INPUT);
@@ -165,10 +221,16 @@ pinMode(input3, INPUT);
 pinMode(output0, OUTPUT);
 pinMode(output1, OUTPUT);
 pinMode(output2, OUTPUT);
-pinMode(output3, OUTPUT);
+pinMode(output3, OUTPUT);*/
 
-// set the initial status of the inputs
+pinMode(battery, INPUT);
 for(i=0;i<4;i=i+1)
+{
+  pinMode(inchannel[i], INPUT);
+  pinMode(outchannel[i],OUTPUT);
+}
+// set the initial status of the inputs
+/*for(i=0;i<4;i=i+1)
 {
   if ((inputstatusflag[i]&0x01)==0)
   {
@@ -180,27 +242,20 @@ for(i=0;i<4;i=i+1)
     instatusdefault=(instatusdefault|(0x01<<i)); // normally closed
   }
  }
+ */
 }
 
 
 
 void loop() {
-
-  MsgRd();
-/*for(i=0;i<4;i++)
-{
-while((latchreset&(0x01<<i))==0)
-{
-  stringtemp="input"+String(i);
-  instatusrd=(instatusrd&(digitalRead(stringtemp)<<i));
-  if((instatusrd&(0x01<<i))!=(instatusdefault&(0x01<<i))
+ 
+while(mySerial.available()<=0)
   {
-    delay(delaymin[i]*60+delaysec[i]);
-    msg="
+    action(); // drive.h
   }
-}
-} 
-*/
+  
+MsgRd();
+
 }
 
 // EEPROM MAPPING
@@ -247,3 +302,13 @@ while((latchreset&(0x01<<i))==0)
 //557-621       INput1 off message ( 6 words, 5 spaces between the words and 10 characters per word)
 //622-686       INput2 off message ( 6 words, 5 spaces between the words and 10 characters per word)
 //687-751       INput3 off message ( 6 words, 5 spaces between the words and 10 characters per word)
+// 752          output Status flag of output 1
+// 753          output Status flag of output 2
+// 754          output Status flag of output 3
+// 755          output Status flag of output 4
+// 756          outputontime[0]
+// 757          outputontime[1]
+// 758          outputontime[2]
+// 759          outputontime[3]
+// 760-764      Battery trigger voltage - 3 characters for reading value, one for decimal point and anther for the length of the string
+// 765          ALive text information
